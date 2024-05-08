@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>UTS-PrakSISMUL-AnisM</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<header>
+    <nav>
+        <ul>
+            <li><a href="#home">Beranda</a></li>
+            <li><a href="#contact">Kontak</a></li>
+        </ul>
+    </nav>
+</header>
+<section id="home">
+<div class="container intro-container">
+    <div id="intro-content">
+        <h1>Aplikasi Kompresi Gambar dan Audio</h1>
+        <p>
+            Aplikasi ini disediakan untuk mengubah ukuran gambar dan mengompres file audio. 
+            Pilih gambar dan tentukan lebar dan tinggi yang diinginkan untuk mengubah ukuran gambar. 
+            Untuk file audio, pilih file dan sesuaikan rasio kompresi untuk mengurangi ukuran file.
+        </p>
+    </div>
+</div>
+<div class="container-img">
+    <b>Kompresi Gambar</b>
+</div>
+<div class="container">
+    <div id="image-result" class="result"></div>
+    <div class="grid-container">
+        <input type="file" id="image-input" accept="image/*">
+        <label for="image-input" class="custom-file-upload">Pilih Gambar</label>
+        <div>
+            <label for="width-input">Width:</label>
+            <input type="number" id="width-input" min="1" step="1">
+        </div>
+        <div>
+            <label for="height-input">Height:</label>
+            <input type="number" id="height-input" min="1" step="1">
+        </div>
+        <button id="resize-button">Resize Gambar</button>
+    </div>
+</div>
+<div class="container-ad">
+    <b>Kompresi Audio</b>
+</div>
+<div class="container">
+    <div class="grid-container">
+        <div>
+            <input type="file" id="audio-input" accept="audio/*">
+            <label for="audio-input" class="custom-file-upload">Pilih Audio</label>
+        </div>
+        <div>
+            <label for="compression-input">Kompresi Ratio:</label>
+            <input type="number" id="compression-input" min="0" step="0.1" value="0.5">
+        </div>
+        <button id="compress-button">Compress Audio</button>
+    </div>
+    <div id="audio-result" class="result"></div>
+</div>
+</section>
+<nav>
+    <ul>
+    <section id="contact">
+        <div class="container-k">
+        <h2>Kontak Saya</h2>
+            <p>telp <a href="085697792981">085697792981</a></p>
+            <p>e-mail <a href="anismubarokah21@gmail.com">anismubarokah21@gmail.com</a></p>
+        </div>
+    </section>
+    </ul> 
+</nav>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.0/lame.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var imageInput = document.getElementById("image-input");
+        var widthInput = document.getElementById("width-input");
+        var heightInput = document.getElementById("height-input");
+        var resizeButton = document.getElementById("resize-button");
+        var resultDiv = document.getElementById("image-result");
+
+        resizeButton.addEventListener("click", function() {
+            var file = imageInput.files[0];
+            var width = parseInt(widthInput.value, 10);
+            var height = parseInt(heightInput.value, 10);
+
+            if (file && width && height) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var resultImage = new Image();
+                    resultImage.onload = function() {
+                        var canvas = document.createElement("canvas");
+                        var context = canvas.getContext("2d");
+
+                        canvas.width = width;
+                        canvas.height = height;
+
+                        context.drawImage(resultImage, 0, 0, width, height);
+
+                        var resizedDataUrl = canvas.toDataURL("image/jpeg");
+
+                        var resizedImage = new Image();
+                        resizedImage.onload = function() {
+                            resultDiv.innerHTML = "";
+                            resultDiv.appendChild(resizedImage);
+
+                            var downloadLink = document.createElement('a');
+                            downloadLink.href = resizedDataUrl;
+                            downloadLink.download = 'resized_image.jpg';
+                            downloadLink.textContent = 'Download Resized Image';
+
+                            resultDiv.appendChild(downloadLink);
+                        };
+                        resizedImage.src = resizedDataUrl;
+                    };
+                    resultImage.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        var audioInput = document.getElementById("audio-input");
+        var compressButton = document.getElementById("compress-button");
+        var audioResultDiv = document.getElementById("audio-result");
+
+        compressButton.addEventListener("click", function() {
+            var file = audioInput.files[0];
+
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var audioData = e.target.result;
+
+                    var mp3Encoder = new lamejs.Mp3Encoder(1, 44100, 128);
+
+                    var samples = new Int16Array(audioData);
+                    var sampleRate = 44100;
+                    var leftChannel = [];
+                    for (var i = 0; i < samples.length; i++) {
+                        leftChannel.push(samples[i]);
+                    }
+
+                    var mp3Data = mp3Encoder.encodeBuffer(leftChannel);
+
+                    var finalMp3Data = mp3Encoder.flush();
+
+                    var combinedData = new Int8Array(mp3Data.length + finalMp3Data.length);
+                    combinedData.set(mp3Data);
+                    combinedData.set(finalMp3Data, mp3Data.length);
+
+                    var compressedBlob = new Blob([combinedData.buffer], { type: 'audio/mp3' });
+
+                    var compressedUrl = URL.createObjectURL(compressedBlob);
+
+                    var audioElement = document.createElement('audio');
+                    audioElement.src = compressedUrl;
+                    audioElement.controls = true;
+
+                    audioResultDiv.innerHTML = "";
+
+                    audioResultDiv.appendChild(audioElement);
+
+                    var downloadLink = document.createElement('a');
+                    downloadLink.href = compressedUrl;
+                    downloadLink.download = 'compressed_audio.mp3';
+                    downloadLink.textContent = 'Download Compressed Audio';
+
+                    audioResultDiv.appendChild(downloadLink);
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        });
+    });
+</script>
+</body>
+</html>
